@@ -1,8 +1,15 @@
 name: "Bootstrap: метки, этап и стартовые задачи"
-# Запускается вручную один раз после создания репозитория из шаблона:
-# Actions → этот workflow → Run workflow.
+# Запускается вручную в начале каждой лабораторной работы:
+# Actions → этот workflow → Run workflow → выберите номер ЛР.
 on:
   workflow_dispatch:
+    inputs:
+      lab:
+        description: "Номер лабораторной работы"
+        required: true
+        default: "1"
+        type: choice
+        options: ["1", "2", "3"]
 permissions:
   contents: read
   issues: write
@@ -14,4 +21,5 @@ jobs:
       - name: Создать метки, этап и задачи
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LAB: ${{ inputs.lab }}
         run: bash .github/scripts/bootstrap.sh
