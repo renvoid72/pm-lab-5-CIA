@@ -5,8 +5,9 @@ __pycache__/
 venv/
 .ipynb_checkpoints/
 
-# Данные большого объёма в репозиторий не коммитим
-data/raw/
+# Сырые данные в репозиторий не коммитим: их можно скачать заново (см. data/README.md)
+data/raw/*
+!data/raw/.gitkeep
 *.tif
 *.tiff
 *.zip
@@ -16,3 +17,6 @@ data/raw/
 .DS_Store
 .idea/
 .vscode/
+
+# Временные выгрузки ноутбуков
+*.out.ipynb
