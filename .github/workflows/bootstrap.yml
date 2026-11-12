@@ -9,7 +9,7 @@ on:
         required: true
         default: "1"
         type: choice
-        options: ["1", "2", "3"]
+        options: ["1", "2", "3", "4"]
 permissions:
   contents: read
   issues: write
