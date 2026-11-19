@@ -8,6 +8,7 @@
 | [02_data_profiling.ipynb](02_data_profiling.ipynb) | ЛР 2, шаг 7 | Профилирует и очищает данные | `data/processed/*.gpkg`, сводка качества |
 | [03_spatial_analysis.ipynb](03_spatial_analysis.ipynb) | ЛР 2, шаг 8 | Первичный пространственный анализ | `docs/img/*.png`, `docs/maps/*.html` |
 | [04_plan_calculator.ipynb](04_plan_calculator.ipynb) | ЛР 3, приложение А | Проверяет PERT, критический путь, загрузку и окупаемость, выводит код диаграммы Ганта | Таблицы для `docs/estimation.md`, `docs/schedule.md`, `docs/budget.md` |
+| [05_risk_monte_carlo.ipynb](05_risk_monte_carlo.ipynb) | ЛР 4, шаг 2 | Моделирует срок и трудоёмкость методом Монте-Карло с учётом рисков, считает индекс критичности и EMV для дерева решений. Диск и данные не нужны |
 
 Код написан для учебного примера AquaMap (питьевая вода в Екатеринбурге). Для своего варианта поменяйте параметры в первой ячейке кода и операции анализа в ноутбуке 03.
 
