@@ -1,13 +1,40 @@
 {
-  "_comment": "Правила проверки слоёв в data/processed для scripts/validate_data.py. Замените значения под свой проект.",
+  "_comment": "Правила проверки пространственных слоёв Уфы. Bbox охватывает границу города с запасом.",
   "crs": "EPSG:4326",
-  "bbox": [60.0, 56.5, 61.0, 57.1],
+  "bbox": [55.75, 54.48, 56.32, 54.98],
   "max_file_mb": 10,
   "layers": {
-    "boundary":     {"geometry": ["Polygon", "MultiPolygon"], "min_count": 1},
-    "districts":    {"geometry": ["Polygon", "MultiPolygon"], "min_count": 5,   "id": ["osm_type", "osm_id"], "required": ["name"]},
-    "water_points": {"geometry": ["Point"],                   "min_count": 50,  "id": ["osm_type", "osm_id"], "required": ["amenity"]},
-    "parks":        {"geometry": ["Polygon", "MultiPolygon"], "min_count": 20,  "id": ["osm_type", "osm_id"]},
-    "residential":  {"geometry": ["Polygon", "MultiPolygon"], "min_count": 1000, "id": ["osm_type", "osm_id"], "required": ["building"]}
+    "boundary": {"geometry": ["Polygon", "MultiPolygon"], "min_count": 1, "required": ["display_name"]},
+    "districts": {
+      "geometry": ["Polygon", "MultiPolygon"],
+      "min_count": 7,
+      "id": ["osm_type", "osm_id"],
+      "required": ["name"]
+    },
+    "roads": {
+      "geometry": ["LineString", "MultiLineString"],
+      "min_count": 4000,
+      "id": ["osm_type", "osm_id"],
+      "required": ["highway"]
+    },
+    "traffic_signals": {
+      "geometry": ["Point"],
+      "min_count": 400,
+      "id": ["osm_type", "osm_id"],
+      "required": ["highway"]
+    },
+    "speed_bumps": {
+      "geometry": ["Point"],
+      "min_count": 50,
+      "id": ["osm_type", "osm_id"],
+      "required": ["traffic_calming"]
+    },
+    "road_segments_trial": {
+      "filename": "road_segments_trial.geojson",
+      "geometry": ["LineString", "MultiLineString"],
+      "min_count": 900,
+      "id": ["osm_type", "osm_id"],
+      "required": ["accident_count", "injured", "killed"]
+    }
   }
 }

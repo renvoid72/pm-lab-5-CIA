@@ -10,6 +10,9 @@
 from __future__ import annotations
 
 import geopandas as gpd
+import pandas as pd
+
+ROAD_ID_COLUMNS = ["osm_type", "osm_id"]
 
 
 def to_metric(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -50,3 +53,54 @@ def share_within(targets: gpd.GeoDataFrame, sources: gpd.GeoDataFrame, distance_
         return 0.0
     dist = nearest_distance(targets, sources)
     return float((dist <= distance_m).mean())
+
+
+def summarize_road_accidents(
+    city_accidents: gpd.GeoDataFrame,
+    roads: gpd.GeoDataFrame,
+    max_snap_distance_m: float,
+) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
+    """Привязывает ДТП к ближайшим дорогам и возвращает совпадения и сводку по сегментам."""
+    _require_metric(city_accidents, roads)
+    if any(axis.unit_conversion_factor != 1 for axis in roads.crs.axis_info[:2]):
+        raise ValueError("Система координат должна использовать метры")
+    if max_snap_distance_m <= 0:
+        raise ValueError("Расстояние должно быть положительным")
+    trial_roads = roads.loc[
+        roads.geometry.notna() & ~roads.geometry.is_empty,
+        ROAD_ID_COLUMNS + ["name", "geometry"],
+    ].copy()
+    if trial_roads.empty or trial_roads[ROAD_ID_COLUMNS].isna().any().any():
+        raise ValueError("Для расчёта нужны сегменты с геометрией и идентификаторами OSM")
+    if trial_roads.duplicated(ROAD_ID_COLUMNS).any():
+        raise ValueError("В слое дорог найдены повторяющиеся идентификаторы OSM")
+    if city_accidents["kart_id"].isna().any() or city_accidents["kart_id"].duplicated().any():
+        raise ValueError("Выгрузка ДТП должна содержать карточки с уникальными идентификаторами")
+
+    nearest = gpd.sjoin_nearest(
+        city_accidents[["kart_id", "injured", "killed", "geometry"]],
+        trial_roads[ROAD_ID_COLUMNS + ["geometry"]],
+        how="inner",
+        max_distance=max_snap_distance_m,
+        distance_col="distance_m",
+    )
+    matched = nearest.sort_values(["distance_m", *ROAD_ID_COLUMNS]).drop_duplicates("kart_id").copy()
+    for column in ("injured", "killed"):
+        values = pd.to_numeric(matched[column], errors="raise")
+        if values.isna().any() or (values < 0).any() or (values % 1 != 0).any():
+            raise ValueError(f"В поле {column} ожидаются целые неотрицательные значения")
+        matched[column] = values.astype("int64")
+
+    segment_counts = matched.groupby(ROAD_ID_COLUMNS, as_index=False).agg(
+        accident_count=("kart_id", "size"),
+        injured=("injured", "sum"),
+        killed=("killed", "sum"),
+    )
+    trial_segments = trial_roads.merge(segment_counts, on=ROAD_ID_COLUMNS, validate="one_to_one")
+    trial_segments = trial_segments.sort_values(
+        ["accident_count", *ROAD_ID_COLUMNS],
+        ascending=[False, True, True],
+    )
+    if trial_segments["accident_count"].sum() != len(matched):
+        raise RuntimeError("Сумма ДТП по сегментам не совпадает с числом привязанных карточек")
+    return matched, trial_segments
