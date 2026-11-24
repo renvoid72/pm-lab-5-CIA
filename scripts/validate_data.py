@@ -17,7 +17,7 @@ RULES = json.loads((ROOT / "data" / "validation.json").read_text(encoding="utf-8
 
 
 def check_layer(name: str, rule: dict) -> list[str]:
-    path = PROCESSED / f"{name}.gpkg"
+    path = PROCESSED / rule.get("filename", f"{name}.gpkg")
     if not path.exists():
         return [f"нет файла {path.relative_to(ROOT)}"]
     errors = []
@@ -29,8 +29,9 @@ def check_layer(name: str, rule: dict) -> list[str]:
         errors.append("не задана система координат")
     elif RULES.get("crs") and gdf.crs != RULES["crs"]:
         errors.append(f"система координат {gdf.crs.to_string()}, ожидается {RULES['crs']}")
-    if len(gdf) < rule.get("min_count", 1):
-        errors.append(f"объектов {len(gdf)}, ожидается не меньше {rule['min_count']}")
+    min_count = rule.get("min_count", 1)
+    if len(gdf) < min_count:
+        errors.append(f"объектов {len(gdf)}, ожидается не меньше {min_count}")
     if gdf.geometry.isna().any() or gdf.is_empty.any():
         errors.append(f"пустых геометрий: {int(gdf.geometry.isna().sum() + gdf.is_empty.sum())}")
     invalid = int((~gdf.is_valid).sum())
@@ -40,11 +41,14 @@ def check_layer(name: str, rule: dict) -> list[str]:
     wrong = sorted(set(gdf.geom_type.dropna()) - allowed) if allowed else []
     if wrong:
         errors.append(f"лишние типы геометрии: {', '.join(wrong)}")
-    for col in rule.get("required", []):
+    id_cols = rule.get("id", [])
+    for col in dict.fromkeys([*rule.get("required", []), *id_cols]):
         if col not in gdf.columns:
             errors.append(f"нет обязательного поля {col}")
-    id_cols = rule.get("id")
     if id_cols and all(c in gdf.columns for c in id_cols):
+        missing_ids = int(gdf[id_cols].isna().any(axis=1).sum())
+        if missing_ids:
+            errors.append(f"объектов без полного идентификатора: {missing_ids}")
         dups = int(gdf.duplicated(id_cols).sum())
         if dups:
             errors.append(f"дубликатов по {'+'.join(id_cols)}: {dups}")
@@ -57,9 +61,6 @@ def check_layer(name: str, rule: dict) -> list[str]:
 
 
 def main() -> int:
-    if not any(PROCESSED.glob("*.gpkg")):
-        print("В data/processed пока нет слоёв, проверка пропущена")
-        return 0
     failed = 0
     for name, rule in RULES["layers"].items():
         errors = check_layer(name, rule)
